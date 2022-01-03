@@ -10,6 +10,7 @@ import lombok.NoArgsConstructor;
 import javax.persistence.Entity;
 import javax.persistence.Id;
 import java.sql.Timestamp;
+import java.time.LocalDateTime;
 
 @Entity
 @Data
@@ -20,4 +21,10 @@ public class User {
     private String uId;
     private String data;
     private Timestamp timestamp;
+
+    public User(UserDao userDao){
+        this.uId = userDao.getUId();
+        this.data = userDao.getData();
+        this.timestamp = userDao.getTimestamp();
+    }
 }

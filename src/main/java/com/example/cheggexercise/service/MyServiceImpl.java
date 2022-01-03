@@ -1,9 +1,12 @@
 package com.example.cheggexercise.service;
 
 import com.example.cheggexercise.db.MyRepository;
+import com.example.cheggexercise.mapper.UserDaoToUser;
 import com.example.cheggexercise.model.User;
+import com.example.cheggexercise.model.UserDao;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.sql.Timestamp;
@@ -20,7 +23,7 @@ public class MyServiceImpl implements MyService {
     public MyServiceImpl(MyRepository myRepository){
         this.myRepository = myRepository;
         this.map =  CacheBuilder.newBuilder()
-                .expireAfterAccess(1, TimeUnit.HOURS)
+                .expireAfterAccess(1, TimeUnit.MINUTES)
                 .build();
     }
 
@@ -37,9 +40,9 @@ public class MyServiceImpl implements MyService {
 
 
     @Override
-    public User insert(User userDto) {
-        String uId = userDto.getUId();
-        Timestamp time = userDto.getTimestamp();
+    public User insert(UserDao userDao) {
+        String uId = userDao.getUId();
+        Timestamp time = userDao.getTimestamp();
         ArrayList<Timestamp> userTimestamps = map.getIfPresent(uId);
         if (userTimestamps != null) {
             userTimestamps.add(time);
@@ -49,7 +52,7 @@ public class MyServiceImpl implements MyService {
             timestamps.add(time);
             map.put(uId, timestamps);
         }
-        return myRepository.save(userDto);
+        return myRepository.save(new User(userDao) );
     }
 
     private int binarySearch(ArrayList<Timestamp> timestamps, Timestamp time) {

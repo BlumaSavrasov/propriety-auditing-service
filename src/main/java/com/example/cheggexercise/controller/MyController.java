@@ -1,8 +1,11 @@
 package com.example.cheggexercise.controller;
 
 
+import com.example.cheggexercise.mapper.UserDtoToUserDaoMapper;
 import com.example.cheggexercise.model.User;
+import com.example.cheggexercise.model.UserDao;
 import com.example.cheggexercise.model.UserDto;
+import com.example.cheggexercise.service.MyService;
 import com.example.cheggexercise.service.MyServiceImpl;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -14,7 +17,7 @@ import org.springframework.web.bind.annotation.*;
 @RequiredArgsConstructor
 public class MyController {
 
-    private final MyServiceImpl myService;
+    private final MyService myService;
 
     @GetMapping("/get/{uid}")
     int get(@PathVariable String uid){
@@ -23,8 +26,8 @@ public class MyController {
 
     @ResponseStatus(HttpStatus.CREATED)
     @PostMapping(value = "/insert")
-    User insert(@RequestBody User userDto) {
-        return myService.insert(userDto);
+    User insert(@RequestBody UserDto userDto) {
+        return myService.insert(new UserDao(userDto));
     }
 
 }
