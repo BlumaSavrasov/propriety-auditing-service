@@ -1,34 +1,32 @@
-package com.example.cheggexercise.service;
+package com.example.cheggexercise.services;
 
-import com.example.cheggexercise.db.MyRepository;
-import com.example.cheggexercise.mapper.UserDaoToUser;
+import com.example.cheggexercise.db.CheggRepository;
 import com.example.cheggexercise.model.User;
-import com.example.cheggexercise.model.UserDao;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
-import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 @Service
-public class MyServiceImpl implements MyService {
+public class ProprietyAuditingServiceImpl implements ProprietyAuditingService {
 
-    private final MyRepository myRepository;
+    private final CheggRepository myRepository;
     private Cache<String, ArrayList<Timestamp>> map;
 
-    public MyServiceImpl(MyRepository myRepository){
+    public ProprietyAuditingServiceImpl(CheggRepository myRepository){
         this.myRepository = myRepository;
         this.map =  CacheBuilder.newBuilder()
-                .expireAfterAccess(1, TimeUnit.MINUTES)
+                .expireAfterWrite(1, TimeUnit.MINUTES)
                 .build();
     }
 
     @Override
-    public int getAmountOfRequest(String uid) {
+    public int getAmountOfRequestsInLastHour(String uid) {
         ArrayList<Timestamp> timestamps = map.getIfPresent(uid);
         Timestamp time = Timestamp.valueOf(LocalDateTime.now().minusHours(1));
         if(timestamps != null) {
@@ -40,10 +38,10 @@ public class MyServiceImpl implements MyService {
 
 
     @Override
-    public User insert(UserDao userDao) {
+    public User insert(User userDao) {
         String uId = userDao.getUId();
         Timestamp time = userDao.getTimestamp();
-        ArrayList<Timestamp> userTimestamps = map.getIfPresent(uId);
+        List<Timestamp> userTimestamps = map.getIfPresent(uId);
         if (userTimestamps != null) {
             userTimestamps.add(time);
         }
@@ -52,7 +50,7 @@ public class MyServiceImpl implements MyService {
             timestamps.add(time);
             map.put(uId, timestamps);
         }
-        return myRepository.save(new User(userDao) );
+        return myRepository.save(userDao);
     }
 
     private int binarySearch(ArrayList<Timestamp> timestamps, Timestamp time) {
