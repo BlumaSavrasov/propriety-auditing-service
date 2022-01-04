@@ -25,10 +25,10 @@ public class ProprietyAuditingServiceImpl implements ProprietyAuditingService {
 
     private void initCache() {
         this.uId2Timestamps =  CacheBuilder.newBuilder().build();
-        /*Here we need to decide how to load the cache on the start of the server.
+        /*We can have 3 modes that can easily be configured via application.properties for example.
         * We can have 3 mode:
         * Mode 1 - load all the users from the db that hava events from the last hour.
-        * Mode 2 - load only the most active user from the db that have events from the last hour.
+        * Mode 2 - load only the most active user from the db that have events from the last hour.(Ids of the users can be specified in external file)
         * Mode 3 - load an empty cache (this is my implementation)
         * */
     }
@@ -40,6 +40,10 @@ public class ProprietyAuditingServiceImpl implements ProprietyAuditingService {
         List<Timestamp> timestamps = uId2Timestamps.get(uid,() -> cheggRepository.findByuIdAndTimestampGreaterThan(uid,time));
 
         if(timestamps != null && !timestamps.isEmpty()) {
+            if(timestamps.get(timestamps.size()).before(time)){
+                uId2Timestamps.put(uid,new ArrayList<>());
+                return 0;
+            }
             int index = binarySearch(timestamps, time);
             List<Timestamp> relevantTimestamps = timestamps.subList(index, timestamps.size());
             uId2Timestamps.put(uid,relevantTimestamps);
