@@ -1,8 +1,8 @@
 package com.example.cheggexercise.services;
 
-import com.example.cheggexercise.model.User;
+import com.example.cheggexercise.model.UserEvent;
 
 public interface ProprietyAuditingService {
     int getAmountOfRequestsInLastHour(String uid);
-    User insert(User userRequest);
+    UserEvent insert(UserEvent userEventRequest);
 }

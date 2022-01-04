@@ -1,63 +1,100 @@
 package com.example.cheggexercise.services;
 
 import com.example.cheggexercise.db.CheggRepository;
-import com.example.cheggexercise.model.User;
+import com.example.cheggexercise.model.UserEvent;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
+import lombok.SneakyThrows;
 import org.springframework.stereotype.Service;
 
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
 
 @Service
 public class ProprietyAuditingServiceImpl implements ProprietyAuditingService {
 
-    private final CheggRepository myRepository;
-    private Cache<String, ArrayList<Timestamp>> map;
+    private final CheggRepository cheggRepository;
+    private Cache<String, List<Timestamp>> uId2Timestamps;
 
-    public ProprietyAuditingServiceImpl(CheggRepository myRepository){
-        this.myRepository = myRepository;
-        this.map =  CacheBuilder.newBuilder()
-                .expireAfterWrite(1, TimeUnit.MINUTES)
-                .build();
+    public ProprietyAuditingServiceImpl(CheggRepository cheggRepository){
+        this.cheggRepository = cheggRepository;
+        initCache();
+    }
+
+    private void initCache() {
+        this.uId2Timestamps =  CacheBuilder.newBuilder().build();
+        /*Here we need to decide how to load the cache on the start of the server.
+        * We can have 3 mode:
+        * Mode 1 - load all the users from the db that hava events from the last hour.
+        * Mode 2 - load only the most active user from the db that have events from the last hour.
+        * Mode 3 - load an empty cache (this is my implementation)
+        * */
     }
 
     @Override
+    @SneakyThrows
     public int getAmountOfRequestsInLastHour(String uid) {
-        ArrayList<Timestamp> timestamps = map.getIfPresent(uid);
         Timestamp time = Timestamp.valueOf(LocalDateTime.now().minusHours(1));
-        if(timestamps != null) {
+        List<Timestamp> timestamps = uId2Timestamps.get(uid,() -> cheggRepository.findByuIdAndTimestampGreaterThan(uid,time));
+
+        if(timestamps != null && !timestamps.isEmpty()) {
             int index = binarySearch(timestamps, time);
-            return timestamps.subList(index, timestamps.size() - 1).size();
+            List<Timestamp> relevantTimestamps = timestamps.subList(index, timestamps.size());
+            uId2Timestamps.put(uid,relevantTimestamps);
+            return relevantTimestamps.size();
         }
         return 0;
     }
 
 
     @Override
-    public User insert(User userDao) {
-        String uId = userDao.getUId();
-        Timestamp time = userDao.getTimestamp();
-        List<Timestamp> userTimestamps = map.getIfPresent(uId);
+    public UserEvent insert(UserEvent userEventDao) {
+        String uId = userEventDao.getUId();
+        Timestamp time = userEventDao.getTimestamp();
+        List<Timestamp> userTimestamps = uId2Timestamps.getIfPresent(uId);
         if (userTimestamps != null) {
             userTimestamps.add(time);
         }
         else {
-            ArrayList<Timestamp> timestamps = new ArrayList<>();
+            List<Timestamp> timestamps = new ArrayList<>();
             timestamps.add(time);
-            map.put(uId, timestamps);
+            uId2Timestamps.put(uId, timestamps);
         }
-        return myRepository.save(userDao);
+        return cheggRepository.save(userEventDao);
     }
 
-    private int binarySearch(ArrayList<Timestamp> timestamps, Timestamp time) {
+    private int binarySearch(List<Timestamp> timestamps, Timestamp time)  {
+        int start = 0;
+        int end = timestamps.size() -1;
+
+        for (int i = 0; i < timestamps.size(); i++)   {
+            int middle = (end - start)/2;
+            if (timestamps.get(i) == time)  {
+                return i;
+            }
+            else if (timestamps.get(middle).after(time))  {
+                end = middle - 1;
+            }
+            else {
+                start = middle + 1;
+            }
+        }
+        return 0;
+    }
+
+    /*I implemented the binary search with a for loop and not
+    * with a recursion because in case will have millions of users
+    * we will have stuck overflow. But if you think that the amount
+    * of users is not that big, and you like recursion - here is a second
+    * implementation for the binary search and with recursion this time.
+
+    private int binarySearch(List<Timestamp> timestamps, Timestamp time) {
         return binarySearch(timestamps, 0, timestamps.size() - 1, time);
     }
 
-    private int binarySearch(ArrayList<Timestamp> timestamps, int leftIndex, int rightIndex, Timestamp time) {
+    private int binarySearch(List<Timestamp> timestamps, int leftIndex, int rightIndex, Timestamp time) {
         if (rightIndex >= leftIndex) {
             int mid = leftIndex + (rightIndex - leftIndex) / 2;
             if (timestamps.get(mid) == time)
@@ -68,4 +105,7 @@ public class ProprietyAuditingServiceImpl implements ProprietyAuditingService {
         }
         return 0;
     }
+    * */
+
+
 }

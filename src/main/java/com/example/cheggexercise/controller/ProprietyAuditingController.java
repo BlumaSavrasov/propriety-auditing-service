@@ -1,7 +1,7 @@
 package com.example.cheggexercise.controller;
 
 
-import com.example.cheggexercise.model.User;
+import com.example.cheggexercise.model.UserEvent;
 import com.example.cheggexercise.services.ProprietyAuditingService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -24,9 +24,9 @@ public class ProprietyAuditingController {
 
     @ResponseStatus(HttpStatus.CREATED)
     @PostMapping(value = "/insert")
-    User insert(@RequestBody User user) {
-        user.setTimestamp(Timestamp.valueOf(LocalDateTime.now()));
-        return myService.insert(user);
+    UserEvent insert(@RequestBody UserEvent userEvent) {
+        userEvent.setTimestamp(Timestamp.valueOf(LocalDateTime.now()));
+        return myService.insert(userEvent);
     }
 
 }
