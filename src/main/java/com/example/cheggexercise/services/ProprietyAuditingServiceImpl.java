@@ -36,7 +36,7 @@ public class ProprietyAuditingServiceImpl implements ProprietyAuditingService {
     @Override
     @SneakyThrows
     public int getAmountOfRequestsInLastHour(String uid) {
-        Timestamp time = Timestamp.valueOf(LocalDateTime.now().minusMinutes(1));
+        Timestamp time = Timestamp.valueOf(LocalDateTime.now().minusHours(1));
         List<Timestamp> timestamps = uId2Timestamps.get(uid,() -> cheggRepository.findByuIdAndTimestampGreaterThan(uid,time));
 
         if(timestamps != null && !timestamps.isEmpty()) {
