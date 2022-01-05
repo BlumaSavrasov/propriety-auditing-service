@@ -36,11 +36,11 @@ public class ProprietyAuditingServiceImpl implements ProprietyAuditingService {
     @Override
     @SneakyThrows
     public int getAmountOfRequestsInLastHour(String uid) {
-        Timestamp time = Timestamp.valueOf(LocalDateTime.now().minusHours(1));
+        Timestamp time = Timestamp.valueOf(LocalDateTime.now().minusMinutes(1));
         List<Timestamp> timestamps = uId2Timestamps.get(uid,() -> cheggRepository.findByuIdAndTimestampGreaterThan(uid,time));
 
         if(timestamps != null && !timestamps.isEmpty()) {
-            if(timestamps.get(timestamps.size()).before(time)){
+            if(timestamps.get(timestamps.size()-1).before(time)){
                 uId2Timestamps.put(uid,new ArrayList<>());
                 return 0;
             }
@@ -75,8 +75,8 @@ public class ProprietyAuditingServiceImpl implements ProprietyAuditingService {
 
         for (int i = 0; i < timestamps.size(); i++)   {
             int middle = (end - start)/2;
-            if (timestamps.get(i) == time)  {
-                return i;
+            if (timestamps.get(i).before(time)) {
+                return i+1;
             }
             else if (timestamps.get(middle).after(time))  {
                 end = middle - 1;
@@ -101,8 +101,8 @@ public class ProprietyAuditingServiceImpl implements ProprietyAuditingService {
     private int binarySearch(List<Timestamp> timestamps, int leftIndex, int rightIndex, Timestamp time) {
         if (rightIndex >= leftIndex) {
             int mid = leftIndex + (rightIndex - leftIndex) / 2;
-            if (timestamps.get(mid) == time)
-                return mid;
+            if (timestamps.get(mid).before(time))
+                return mid+1;
             if (timestamps.get(mid).after(time))
                 return binarySearch(timestamps, leftIndex, mid - 1, time);
             return binarySearch(timestamps, mid + 1, rightIndex, time);
